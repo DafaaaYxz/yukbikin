@@ -18,13 +18,4 @@ const App: React.FC = () => {
   )
 }
 
-// Di useEffect Home.tsx atau App.tsx
-useEffect(() => {
-  const params = new URLSearchParams(window.location.search);
-  const botId = params.get('bot');
-  if (botId) {
-    navigate(`/chat/${botId}`);
-  }
-}, []);
-
 export default App
