@@ -8,7 +8,11 @@ const Home: React.FC = () => {
   const [bots, setBots] = useState<Bot[]>([]);
 
   useEffect(() => {
-    setBots(getBots());
+    const fetchBots = async () => {
+      const botsData = await getBots();
+      setBots(botsData);
+    };
+    fetchBots();
   }, []);
 
   const handleChat = (botId: string) => {
