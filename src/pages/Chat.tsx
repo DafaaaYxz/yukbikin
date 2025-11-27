@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
-import { Bot, Message, ChatSession } from '../types';
-import { getBotById, getChatSessionByBotId, saveChatSession, updateChatSession } from '../utils/storage';
+import { Bot, Message } from '../types';
+import { getBotById, getChatSessionByBotId, updateChatSession } from '../utils/storage';
 import { generateAIResponse } from '../utils/api';
 
 const Chat: React.FC = () => {
@@ -27,19 +27,14 @@ const Chat: React.FC = () => {
   }, [botId, navigate]);
 
   const loadChatSession = (botId: string) => {
-    let session = getChatSessionByBotId(botId);
+    const session = getChatSessionByBotId(botId);
     
-    if (!session) {
-      session = {
-        id: uuidv4(),
-        botId,
-        messages: [],
-        createdAt: new Date()
-      };
-      saveChatSession(session);
+    if (session) {
+      setMessages(session.messages);
+    } else {
+      // Jika tidak ada session, buat yang baru dengan array kosong
+      setMessages([]);
     }
-    
-    setMessages(session.messages);
   };
 
   const scrollToBottom = () => {
@@ -89,6 +84,16 @@ const Chat: React.FC = () => {
       }
     } catch (error) {
       console.error('Error sending message:', error);
+      // Tambahkan pesan error
+      const errorMessage: Message = {
+        id: uuidv4(),
+        botId: bot.id,
+        content: 'Maaf, terjadi kesalahan saat menghubungi AI.',
+        isUser: false,
+        timestamp: new Date()
+      };
+      const finalMessages = [...newMessages, errorMessage];
+      setMessages(finalMessages);
     } finally {
       setIsLoading(false);
     }
