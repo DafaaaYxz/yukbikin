@@ -1,9 +1,8 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Home from './pages/Home';
-import CreateBot from './pages/CreateBot';
-import Chat from './pages/Chat';
-import './styles/App.css';
+import React from 'react'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import Home from './pages/Home'
+import CreateBot from './pages/CreateBot'
+import Chat from './pages/Chat'
 
 const App: React.FC = () => {
   return (
@@ -16,7 +15,7 @@ const App: React.FC = () => {
         </Routes>
       </div>
     </Router>
-  );
-};
+  )
+}
 
-export default App;
+export default App
