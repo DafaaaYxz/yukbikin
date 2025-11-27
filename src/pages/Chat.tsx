@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { Bot, Message } from '../types';
-import { getBotById, getChatSessionByBotId, updateChatSession } from '../utils/storage';
+import { getBotById, getChatSessionByBotId, saveChatSession } from '../utils/storage';
 import { generateAIResponse } from '../utils/api';
 
 const Chat: React.FC = () => {
@@ -15,24 +15,27 @@ const Chat: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (botId) {
-      const foundBot = getBotById(botId);
-      if (foundBot) {
-        setBot(foundBot);
-        loadChatSession(foundBot.id);
-      } else {
-        navigate('/');
+    const fetchBotAndSession = async () => {
+      if (botId) {
+        const foundBot = await getBotById(botId);
+        if (foundBot) {
+          setBot(foundBot);
+          loadChatSession(foundBot.id);
+        } else {
+          navigate('/');
+        }
       }
-    }
+    };
+    fetchBotAndSession();
   }, [botId, navigate]);
 
-  const loadChatSession = (botId: string) => {
-    const session = getChatSessionByBotId(botId);
-    
+  const loadChatSession = async (botId: string) => {
+    const session = await getChatSessionByBotId(botId);
     if (session) {
-      setMessages(session.messages);
+      // Dates are stored as strings in JSON, so we need to convert them back
+      const messagesWithDates = session.messages.map(m => ({...m, timestamp: new Date(m.timestamp)}));
+      setMessages(messagesWithDates);
     } else {
-      // Jika tidak ada session, buat yang baru dengan array kosong
       setMessages([]);
     }
   };
@@ -77,14 +80,17 @@ const Chat: React.FC = () => {
       setMessages(finalMessages);
 
       // Update storage
-      const session = getChatSessionByBotId(bot.id);
-      if (session) {
-        session.messages = finalMessages;
-        updateChatSession(session);
-      }
+      const session = await getChatSessionByBotId(bot.id) || {
+        id: uuidv4(),
+        botId: bot.id,
+        messages: [],
+        createdAt: new Date(),
+      };
+      session.messages = finalMessages;
+      await saveChatSession(session);
+
     } catch (error) {
       console.error('Error sending message:', error);
-      // Tambahkan pesan error
       const errorMessage: Message = {
         id: uuidv4(),
         botId: bot.id,
@@ -92,8 +98,7 @@ const Chat: React.FC = () => {
         isUser: false,
         timestamp: new Date()
       };
-      const finalMessages = [...newMessages, errorMessage];
-      setMessages(finalMessages);
+      setMessages(prevMessages => [...prevMessages, errorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -141,7 +146,7 @@ const Chat: React.FC = () => {
               <div className="message-content">
                 <p>{message.content}</p>
                 <span className="message-time">
-                  {message.timestamp.toLocaleTimeString()}
+                  {new Date(message.timestamp).toLocaleTimeString()}
                 </span>
               </div>
             </div>
