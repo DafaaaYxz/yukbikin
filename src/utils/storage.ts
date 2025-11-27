@@ -1,45 +1,47 @@
 import { Bot, ChatSession } from '../types';
 
-const BOTS_STORAGE_KEY = 'ai_bots';
-const CHATS_STORAGE_KEY = 'ai_chats';
-
-export function saveBot(bot: Bot): void {
-  const bots = getBots();
-  bots.push(bot);
-  localStorage.setItem(BOTS_STORAGE_KEY, JSON.stringify(bots));
+export async function saveBot(bot: Bot): Promise<void> {
+  await window.storage.set(`bot:${bot.id}`, JSON.stringify(bot), true);
 }
 
-export function getBots(): Bot[] {
-  const data = localStorage.getItem(BOTS_STORAGE_KEY);
-  return data ? JSON.parse(data) : [];
-}
-
-export function getBotById(id: string): Bot | undefined {
-  const bots = getBots();
-  return bots.find(bot => bot.id === id);
-}
-
-export function saveChatSession(session: ChatSession): void {
-  const sessions = getChatSessions();
-  sessions.push(session);
-  localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(sessions));
-}
-
-export function getChatSessions(): ChatSession[] {
-  const data = localStorage.getItem(CHATS_STORAGE_KEY);
-  return data ? JSON.parse(data) : [];
-}
-
-export function getChatSessionByBotId(botId: string): ChatSession | undefined {
-  const sessions = getChatSessions();
-  return sessions.find(session => session.botId === botId);
-}
-
-export function updateChatSession(updatedSession: ChatSession): void {
-  const sessions = getChatSessions();
-  const index = sessions.findIndex(session => session.id === updatedSession.id);
-  if (index !== -1) {
-    sessions[index] = updatedSession;
-    localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(sessions));
+export async function getBots(): Promise<Bot[]> {
+  try {
+    const result = await window.storage.list('bot:', true);
+    if (result && result.keys) {
+      const botPromises = result.keys.map(async (key) => {
+        const data = await window.storage.get(key, true);
+        return data ? JSON.parse(data.value) : null;
+      });
+      return (await Promise.all(botPromises)).filter(b => b);
+    }
+  } catch (error) {
+    console.log('No bots found');
   }
+  return [];
+}
+
+export async function getBotById(id: string): Promise<Bot | null> {
+  try {
+    const result = await window.storage.get(`bot:${id}`, true);
+    return result ? JSON.parse(result.value) : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+export async function saveChatSession(session: ChatSession): Promise<void> {
+  await window.storage.set(`chat:${session.botId}`, JSON.stringify(session), false);
+}
+
+export async function getChatSessionByBotId(botId: string): Promise<ChatSession | null> {
+  try {
+    const result = await window.storage.get(`chat:${botId}`, false);
+    return result ? JSON.parse(result.value) : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+export async function updateChatSession(updatedSession: ChatSession): Promise<void> {
+  await saveChatSession(updatedSession);
 }
